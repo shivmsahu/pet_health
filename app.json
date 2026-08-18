@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "Pawday",
+    "slug": "pawday",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": { "backgroundColor": "#FFF9F1" },
+    "ios": { "supportsTablet": true },
+    "android": { "adaptiveIcon": { "backgroundColor": "#FFF9F1" } },
+    "web": { "bundler": "metro" },
+    "plugins": [
+      ["expo-image-picker", { "photosPermission": "Pawday uses your photos to fill your pet scrapbook." }]
+    ]
+  }
+}
