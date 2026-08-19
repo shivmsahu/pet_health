@@ -1,5 +1,6 @@
 node_modules/
 .expo/
 dist/
+.expo-web-check/
 npm-debug.log*
 .DS_Store
