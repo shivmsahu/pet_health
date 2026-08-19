@@ -7,6 +7,7 @@ export type Pet = {
   kind: string;
   emoji: string;
   color: string;
+  photoUri?: string;
   createdAt: string;
 };
 
@@ -184,7 +185,7 @@ export function seedState(now = new Date()): PawdayState {
   };
 }
 
-export function newPet(input: Pick<Pet, 'name' | 'kind' | 'emoji' | 'color'>): Pet {
+export function newPet(input: Pick<Pet, 'name' | 'kind' | 'emoji' | 'color' | 'photoUri'>): Pet {
   return { ...input, id: id('pet'), createdAt: new Date().toISOString() };
 }
 

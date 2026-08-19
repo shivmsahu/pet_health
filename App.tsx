@@ -62,7 +62,9 @@ export default function App() {
   const [reminderFormVisible, setReminderFormVisible] = useState(false);
   const [momentFormVisible, setMomentFormVisible] = useState(false);
   const [editingReminderId, setEditingReminderId] = useState<string | null>(null);
-  const [petDraft, setPetDraft] = useState({ name: '', kind: 'Dog', emoji: '🐕' });
+  const [editingMomentId, setEditingMomentId] = useState<string | null>(null);
+  const [settingsVisible, setSettingsVisible] = useState(false);
+  const [petDraft, setPetDraft] = useState({ name: '', kind: 'Dog', emoji: '🐕', photoUri: undefined as string | undefined });
   const [reminderDraft, setReminderDraft] = useState({ title: '', time: '08:00', category: 'Food' as CareReminder['category'], recurrence: 'daily' as CareReminder['recurrence'] });
   const [momentDraft, setMomentDraft] = useState({ title: '', note: '', photoUri: undefined as string | undefined });
 
@@ -107,23 +109,24 @@ export default function App() {
   const addMoment = () => {
     if (!pet || !momentDraft.title.trim()) return;
     const moment = newMoment({ petId: pet.id, title: momentDraft.title.trim(), note: momentDraft.note.trim(), date: today, photoUri: momentDraft.photoUri });
-    updateState(current => ({ ...current, moments: [moment, ...current.moments] }));
+    updateState(current => ({ ...current, moments: editingMomentId ? current.moments.map(item => item.id === editingMomentId ? { ...item, title: moment.title, note: moment.note, photoUri: moment.photoUri } : item) : [moment, ...current.moments] }));
     setMomentFormVisible(false);
+    setEditingMomentId(null);
     setMomentDraft({ title: '', note: '', photoUri: undefined });
   };
 
   const addPet = () => {
     if (!petDraft.name.trim()) return;
     if (editingPetId) {
-      updateState(current => ({ ...current, pets: current.pets.map(item => item.id === editingPetId ? { ...item, name: petDraft.name.trim(), kind: petDraft.kind, emoji: petDraft.emoji } : item) }));
+      updateState(current => ({ ...current, pets: current.pets.map(item => item.id === editingPetId ? { ...item, name: petDraft.name.trim(), kind: petDraft.kind, emoji: petDraft.emoji, photoUri: petDraft.photoUri } : item) }));
     } else {
-      const created = newPet({ name: petDraft.name.trim(), kind: `${petDraft.kind} · new friend`, emoji: petDraft.emoji, color: '#F5D6AE' });
+      const created = newPet({ name: petDraft.name.trim(), kind: `${petDraft.kind} · new friend`, emoji: petDraft.emoji, color: '#F5D6AE', photoUri: petDraft.photoUri });
       updateState(current => ({ ...current, pets: [...current.pets, created], selectedPetId: created.id }));
     }
     setPetFormVisible(false);
     setPetManagerVisible(false);
     setEditingPetId(null);
-    setPetDraft({ name: '', kind: 'Dog', emoji: '🐕' });
+    setPetDraft({ name: '', kind: 'Dog', emoji: '🐕', photoUri: undefined });
   };
 
   const managePet = (managedPet: PawdayState['pets'][number]) => {
@@ -131,7 +134,7 @@ export default function App() {
     const snapshot = state;
     Alert.alert(managedPet.name, 'Manage this pet profile.', [
     { text: 'Cancel', style: 'cancel' },
-    { text: 'Edit', onPress: () => { setEditingPetId(managedPet.id); setPetDraft({ name: managedPet.name, kind: managedPet.kind.replace(' · new friend', ''), emoji: managedPet.emoji }); setPetManagerVisible(false); setPetFormVisible(true); } },
+    { text: 'Edit', onPress: () => { setEditingPetId(managedPet.id); setPetDraft({ name: managedPet.name, kind: managedPet.kind.replace(' · new friend', ''), emoji: managedPet.emoji, photoUri: managedPet.photoUri }); setPetManagerVisible(false); setPetFormVisible(true); } },
     { text: 'Delete', style: 'destructive', onPress: () => {
       if (snapshot.pets.length === 1) { Alert.alert('Keep one friend', 'Pawday needs at least one pet profile.'); return; }
       const remaining = snapshot.pets.filter(item => item.id !== managedPet.id);
@@ -145,7 +148,8 @@ export default function App() {
     setPetManagerVisible(false);
   };
 
-  if (!state || !pet) return <LoadingScreen />;
+  if (!state) return <LoadingScreen />;
+  if (!pet) return <SafeAreaView style={styles.safe}><View style={styles.loading}><Text style={styles.loadingEmoji}>🐾</Text><Text style={styles.pageTitle}>Meet your pet</Text><Text style={styles.emptyBody}>Add a pet profile to start building a caring rhythm.</Text><Pressable style={styles.primaryButton} onPress={() => setPetFormVisible(true)}><Text style={styles.primaryText}>Add your first pet</Text></Pressable></View><PetForm visible={petFormVisible} editing={false} draft={petDraft} onChange={draft => setPetDraft(current => ({ ...current, ...draft }))} onClose={() => setPetFormVisible(false)} onSave={addPet} /></SafeAreaView>;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -155,15 +159,16 @@ export default function App() {
           <Header pet={pet} onPress={() => setPetManagerVisible(true)} />
           {tab === 'Home' && <Home pet={pet} reminders={state.reminders} date={today} onToggle={toggleTask} onSeeSchedule={() => setTab('Schedule')} />}
           {tab === 'Schedule' && <Schedule pet={pet} reminders={state.reminders} date={selectedDate} dates={dates} onDate={setSelectedDate} onToggle={toggleTask} onManage={manageReminder} onAdd={() => { setEditingReminderId(null); setReminderFormVisible(true); }} />}
-          {tab === 'Journal' && <Journal pet={pet} moments={state.moments} onAdd={() => setMomentFormVisible(true)} onDelete={moment => updateState(current => ({ ...current, moments: current.moments.filter(item => item.id !== moment.id) }))} />}
+          {tab === 'Journal' && <Journal pet={pet} moments={state.moments} onAdd={() => { setEditingMomentId(null); setMomentFormVisible(true); }} onEdit={moment => { setEditingMomentId(moment.id); setMomentDraft({ title: moment.title, note: moment.note, photoUri: moment.photoUri }); setMomentFormVisible(true); }} onDelete={moment => updateState(current => ({ ...current, moments: current.moments.filter(item => item.id !== moment.id) }))} />}
           {tab === 'Awards' && <Awards pet={pet} reminders={state.reminders} moments={state.moments} />}
         </ScrollView>
         <TabBar selected={tab} onSelect={setTab} />
       </View>
-      <PetManager visible={petManagerVisible} pets={state.pets} selectedPetId={pet.id} onSelect={selectPet} onManage={managePet} onAdd={() => { setEditingPetId(null); setPetManagerVisible(false); setPetFormVisible(true); }} onClose={() => setPetManagerVisible(false)} />
-      <PetForm visible={petFormVisible} editing={Boolean(editingPetId)} draft={petDraft} onChange={setPetDraft} onClose={() => { setEditingPetId(null); setPetFormVisible(false); }} onSave={addPet} />
+      <PetManager visible={petManagerVisible} pets={state.pets} selectedPetId={pet.id} onSelect={selectPet} onManage={managePet} onAdd={() => { setEditingPetId(null); setPetManagerVisible(false); setPetFormVisible(true); }} onSettings={() => { setPetManagerVisible(false); setSettingsVisible(true); }} onClose={() => setPetManagerVisible(false)} />
+      <PetForm visible={petFormVisible} editing={Boolean(editingPetId)} draft={petDraft} onChange={draft => setPetDraft(current => ({ ...current, ...draft }))} onClose={() => { setEditingPetId(null); setPetFormVisible(false); }} onSave={addPet} />
       <ReminderForm visible={reminderFormVisible} editing={Boolean(editingReminderId)} draft={reminderDraft} onChange={setReminderDraft} onClose={() => { setEditingReminderId(null); setReminderFormVisible(false); }} onSave={addReminder} />
       <MomentForm visible={momentFormVisible} draft={momentDraft} onChange={draft => setMomentDraft(current => ({ ...current, ...draft }))} onClose={() => setMomentFormVisible(false)} onSave={addMoment} />
+      <SettingsModal visible={settingsVisible} onClose={() => setSettingsVisible(false)} onDeleteAll={() => { setSettingsVisible(false); setState(null); void saveState({ pets: [], reminders: [], moments: [], selectedPetId: '' }); }} />
     </SafeAreaView>
   );
 }
@@ -205,7 +210,7 @@ function Header({ pet, onPress }: { pet: PawdayState['pets'][number]; onPress: (
 }
 
 function PetCard({ pet }: { pet: PawdayState['pets'][number] }) {
-  return <View style={[styles.petCard, { backgroundColor: `${pet.color}55` }]}><View style={[styles.petArt, { backgroundColor: `${pet.color}88` }]}><View style={styles.sun} /><Text style={styles.petEmoji}>{pet.emoji}</Text><Text style={styles.sparkle}>✦</Text></View><View style={styles.petInfo}><Text style={styles.petName}>{pet.name}</Text><Text style={styles.petMeta}>{pet.kind}</Text><View style={styles.moodPill}><Text style={styles.moodText}>●  Feeling pawsome</Text></View></View><Ionicons name="chevron-forward" size={18} color="#6E716B" /></View>;
+  return <View style={[styles.petCard, { backgroundColor: `${pet.color}55` }]}><View style={[styles.petArt, { backgroundColor: `${pet.color}88` }]}><View style={styles.sun} />{pet.photoUri ? <Image source={{ uri: pet.photoUri }} style={styles.pickedImage} /> : <Text style={styles.petEmoji}>{pet.emoji}</Text>}<Text style={styles.sparkle}>✦</Text></View><View style={styles.petInfo}><Text style={styles.petName}>{pet.name}</Text><Text style={styles.petMeta}>{pet.kind}</Text><View style={styles.moodPill}><Text style={styles.moodText}>●  Feeling pawsome</Text></View></View><Ionicons name="chevron-forward" size={18} color="#6E716B" /></View>;
 }
 
 function Home({ pet, reminders, date, onToggle, onSeeSchedule }: { pet: PawdayState['pets'][number]; reminders: CareReminder[]; date: string; onToggle: (id: string, date: string) => void; onSeeSchedule: () => void }) {
@@ -225,9 +230,13 @@ function Schedule({ pet, reminders, date, dates, onDate, onToggle, onManage, onA
   return <><Text style={styles.pageTitle}>Care schedule</Text><Text style={styles.pageIntro}>A calm rhythm for happy, healthy pets.</Text><View style={styles.dateStrip}>{dates.map(value => <Pressable accessibilityRole="button" key={value} onPress={() => onDate(value)} style={[styles.dateCell, value === date && styles.dateActive]}><Text style={[styles.dateText, value === date && { color: 'white' }]}>{new Date(`${value}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short' }).slice(0, 1)}{`\n${Number(value.slice(-2))}`}</Text></Pressable>)}</View><Text style={styles.timelineLabel}>{date === dateKey() ? 'TODAY' : formatDate(date, { weekday: 'long', month: 'short', day: 'numeric' }).toUpperCase()} · {tasks.length} TASKS</Text>{tasks.length ? <View style={styles.activityList}>{tasks.map(task => <ActivityRow key={task.id} reminder={task} date={date} onToggle={onToggle} onManage={onManage} />)}</View> : <EmptyState title="Nothing scheduled" body="Build a rhythm that works for you and your pet." action="Add care reminder" onPress={onAdd} />}<Pressable style={styles.primaryButton} onPress={onAdd}><Ionicons name="add" size={20} color="white" /><Text style={styles.primaryText}>Add care reminder</Text></Pressable><Text style={styles.helperText}>Tip: long-press a reminder to edit, pause, or remove it.</Text></>;
 }
 
-function Journal({ pet, moments, onAdd, onDelete }: { pet: PawdayState['pets'][number]; moments: JournalMoment[]; onAdd: () => void; onDelete: (moment: JournalMoment) => void }) {
+function Journal({ pet, moments, onAdd, onEdit, onDelete }: { pet: PawdayState['pets'][number]; moments: JournalMoment[]; onAdd: () => void; onEdit: (moment: JournalMoment) => void; onDelete: (moment: JournalMoment) => void }) {
   const petMoments = moments.filter(moment => moment.petId === pet.id).sort((a, b) => b.date.localeCompare(a.date));
-  return <><View style={styles.pageTitleRow}><View><Text style={styles.pageTitle}>Little moments</Text><Text style={styles.pageIntro}>Your scrapbook of happy days.</Text></View><Pressable accessibilityLabel="Add a journal moment" style={styles.addRound} onPress={onAdd}><Ionicons name="add" size={25} color="white" /></Pressable></View>{petMoments.length ? <View style={styles.memoryGrid}>{petMoments.map((moment, index) => <Pressable key={moment.id} onLongPress={() => Alert.alert('Delete moment?', `Remove “${moment.title}” from the scrapbook?`, [{ text: 'Keep it', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: () => onDelete(moment) }])} style={[styles.memoryCard, index === 0 && styles.memoryWide, { transform: [{ rotate: index % 2 ? '1.5deg' : '-1deg' }] }]}>{moment.photoUri ? <Image source={{ uri: moment.photoUri }} style={styles.memoryPhoto} /> : <View style={[styles.photoPlaceholder, { backgroundColor: ['#A7D7E5', '#E8C3A6', '#BFD5A4'][index % 3] }]}><Text style={styles.memoryEmoji}>{['🌊', '💤', '🎾'][index % 3]}</Text><View style={styles.tape} /></View>}<Text style={styles.memoryDate}>{formatDate(moment.date, { month: 'short', day: 'numeric' }).toUpperCase()}</Text><Text style={styles.memoryTitle}>{moment.title}</Text>{moment.note ? <Text style={styles.memoryNote}>{moment.note}</Text> : null}</Pressable>)}</View> : <EmptyState title="Start your scrapbook" body="Save the tiny moments you never want to forget." action="Add a moment" onPress={onAdd} />}<Pressable style={styles.dashedAdd} onPress={onAdd}><Ionicons name="camera-outline" size={25} color="#B36D54" /><Text style={styles.dashedText}>Add a little moment</Text></Pressable><Text style={styles.helperText}>Tip: long-press a card to delete it.</Text></>;
+  return <>
+    <View style={styles.pageTitleRow}><View><Text style={styles.pageTitle}>Little moments</Text><Text style={styles.pageIntro}>Your scrapbook of happy days.</Text></View><Pressable accessibilityLabel="Add a journal moment" style={styles.addRound} onPress={onAdd}><Ionicons name="add" size={25} color="white" /></Pressable></View>
+    {petMoments.length ? <View style={styles.memoryGrid}>{petMoments.map((moment, index) => <Pressable key={moment.id} onLongPress={() => Alert.alert(moment.title, 'Manage this scrapbook moment.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Edit', onPress: () => onEdit(moment) }, { text: 'Delete', style: 'destructive', onPress: () => onDelete(moment) }])} style={[styles.memoryCard, index === 0 && styles.memoryWide, { transform: [{ rotate: index % 2 ? '1.5deg' : '-1deg' }] }]}>{moment.photoUri ? <Image source={{ uri: moment.photoUri }} style={styles.memoryPhoto} /> : <View style={[styles.photoPlaceholder, { backgroundColor: ['#A7D7E5', '#E8C3A6', '#BFD5A4'][index % 3] }]}><Text style={styles.memoryEmoji}>{['🌊', '💤', '🎾'][index % 3]}</Text><View style={styles.tape} /></View>}<Text style={styles.memoryDate}>{formatDate(moment.date, { month: 'short', day: 'numeric' }).toUpperCase()}</Text><Text style={styles.memoryTitle}>{moment.title}</Text>{moment.note ? <Text style={styles.memoryNote}>{moment.note}</Text> : null}</Pressable>)}</View> : <EmptyState title="Start your scrapbook" body="Save the tiny moments you never want to forget." action="Add a moment" onPress={onAdd} />}
+    <Pressable style={styles.dashedAdd} onPress={onAdd}><Ionicons name="camera-outline" size={25} color="#B36D54" /><Text style={styles.dashedText}>Add a little moment</Text></Pressable><Text style={styles.helperText}>Tip: long-press a card to edit or delete it.</Text>
+  </>;
 }
 
 function Awards({ pet, reminders, moments }: { pet: PawdayState['pets'][number]; reminders: CareReminder[]; moments: JournalMoment[] }) {
@@ -245,12 +254,13 @@ function TabBar({ selected, onSelect }: { selected: Tab; onSelect: (tab: Tab) =>
   return <View style={styles.tabBar}>{tabs.map(item => <Pressable accessibilityRole="tab" accessibilityState={{ selected: selected === item.name }} key={item.name} style={styles.tab} onPress={() => onSelect(item.name)}><Ionicons name={selected === item.name ? item.icon.replace('-outline', '') as keyof typeof Ionicons.glyphMap : item.icon} size={22} color={selected === item.name ? '#B6634B' : '#999B95'} /><Text style={[styles.tabText, selected === item.name && styles.tabSelected]}>{item.name}</Text></Pressable>)}</View>;
 }
 
-function PetManager({ visible, pets, selectedPetId, onSelect, onManage, onAdd, onClose }: { visible: boolean; pets: PawdayState['pets']; selectedPetId: string; onSelect: (id: string) => void; onManage: (pet: PawdayState['pets'][number]) => void; onAdd: () => void; onClose: () => void }) {
-  return <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}><View style={styles.modalShade}><View style={styles.modal}><View style={styles.modalHandle} /><Text style={styles.modalTitle}>Your pets</Text>{pets.map(pet => <Pressable key={pet.id} style={[styles.petChoice, pet.id === selectedPetId && styles.petChoiceSelected]} onPress={() => onSelect(pet.id)} onLongPress={() => onManage(pet)}><Text style={styles.petChoiceEmoji}>{pet.emoji}</Text><View style={{ flex: 1 }}><Text style={styles.petChoiceName}>{pet.name}</Text><Text style={styles.petChoiceMeta}>{pet.kind}</Text></View>{pet.id === selectedPetId && <Ionicons name="checkmark-circle" size={22} color="#78A981" />}</Pressable>)}<Pressable style={styles.primaryButton} onPress={onAdd}><Ionicons name="add" size={20} color="white" /><Text style={styles.primaryText}>Add a pet</Text></Pressable><Text style={styles.helperText}>Long-press a pet to edit or delete it.</Text><Pressable onPress={onClose}><Text style={styles.cancel}>Done</Text></Pressable></View></View></Modal>;
+function PetManager({ visible, pets, selectedPetId, onSelect, onManage, onAdd, onSettings, onClose }: { visible: boolean; pets: PawdayState['pets']; selectedPetId: string; onSelect: (id: string) => void; onManage: (pet: PawdayState['pets'][number]) => void; onAdd: () => void; onSettings: () => void; onClose: () => void }) {
+  return <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}><View style={styles.modalShade}><View style={styles.modal}><View style={styles.modalHandle} /><Text style={styles.modalTitle}>Your pets</Text>{pets.map(pet => <Pressable key={pet.id} style={[styles.petChoice, pet.id === selectedPetId && styles.petChoiceSelected]} onPress={() => onSelect(pet.id)} onLongPress={() => onManage(pet)}>{pet.photoUri ? <Image source={{ uri: pet.photoUri }} style={{ width: 38, height: 38, borderRadius: 19 }} /> : <Text style={styles.petChoiceEmoji}>{pet.emoji}</Text>}<View style={{ flex: 1 }}><Text style={styles.petChoiceName}>{pet.name}</Text><Text style={styles.petChoiceMeta}>{pet.kind}</Text></View>{pet.id === selectedPetId && <Ionicons name="checkmark-circle" size={22} color="#78A981" />}</Pressable>)}<Pressable style={styles.primaryButton} onPress={onAdd}><Ionicons name="add" size={20} color="white" /><Text style={styles.primaryText}>Add a pet</Text></Pressable><Pressable style={styles.dashedAdd} onPress={onSettings}><Ionicons name="settings-outline" size={18} color="#B6634B" /><Text style={styles.dashedText}>Settings & data</Text></Pressable><Text style={styles.helperText}>Long-press a pet to edit or delete it.</Text><Pressable onPress={onClose}><Text style={styles.cancel}>Done</Text></Pressable></View></View></Modal>;
 }
 
-function PetForm({ visible, editing, draft, onChange, onClose, onSave }: { visible: boolean; editing: boolean; draft: { name: string; kind: string; emoji: string }; onChange: (draft: { name: string; kind: string; emoji: string }) => void; onClose: () => void; onSave: () => void }) {
-  return <FormModal visible={visible} title={editing ? 'Edit pet' : 'Add a pet'} onClose={onClose}><Text style={styles.inputLabel}>PET NAME</Text><TextInput autoFocus value={draft.name} onChangeText={name => onChange({ ...draft, name })} placeholder="Mochi" placeholderTextColor="#AAA9A2" style={styles.input} /><Text style={styles.inputLabel}>ANIMAL TYPE</Text><TextInput value={draft.kind} onChangeText={kind => onChange({ ...draft, kind })} placeholder="Dog" placeholderTextColor="#AAA9A2" style={styles.input} /><Text style={styles.inputLabel}>AVATAR</Text><View style={styles.emojiRow}>{['🐕', '🐈', '🐇', '🐢', '🦜'].map(emoji => <Pressable key={emoji} onPress={() => onChange({ ...draft, emoji })} style={[styles.emojiChoice, draft.emoji === emoji && styles.emojiChoiceSelected]}><Text style={{ fontSize: 28 }}>{emoji}</Text></Pressable>)}</View><Pressable style={[styles.primaryButton, !draft.name.trim() && { opacity: 0.45 }]} onPress={onSave} disabled={!draft.name.trim()}><Text style={styles.primaryText}>{editing ? 'Save changes' : 'Save pet'}</Text></Pressable></FormModal>;
+function PetForm({ visible, editing, draft, onChange, onClose, onSave }: { visible: boolean; editing: boolean; draft: { name: string; kind: string; emoji: string; photoUri?: string }; onChange: (draft: { name: string; kind: string; emoji: string; photoUri?: string }) => void; onClose: () => void; onSave: () => void }) {
+  const pickPhoto = async () => { const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 }); if (!result.canceled) onChange({ ...draft, photoUri: result.assets[0].uri }); };
+  return <FormModal visible={visible} title={editing ? 'Edit pet' : 'Add a pet'} onClose={onClose}><Text style={styles.inputLabel}>PET NAME</Text><TextInput autoFocus value={draft.name} onChangeText={name => onChange({ ...draft, name })} placeholder="Mochi" placeholderTextColor="#AAA9A2" style={styles.input} /><Text style={styles.inputLabel}>ANIMAL TYPE</Text><TextInput value={draft.kind} onChangeText={kind => onChange({ ...draft, kind })} placeholder="Dog" placeholderTextColor="#AAA9A2" style={styles.input} /><Text style={styles.inputLabel}>PHOTO (OPTIONAL)</Text><Pressable style={styles.photoPicker} onPress={pickPhoto}>{draft.photoUri ? <Image source={{ uri: draft.photoUri }} style={styles.pickedImage} /> : <Text style={styles.photoPickerText}>Choose a photo</Text>}</Pressable><Text style={styles.inputLabel}>AVATAR</Text><View style={styles.emojiRow}>{['🐕', '🐈', '🐇', '🐢', '🦜'].map(emoji => <Pressable key={emoji} onPress={() => onChange({ ...draft, emoji })} style={[styles.emojiChoice, draft.emoji === emoji && styles.emojiChoiceSelected]}><Text style={{ fontSize: 28 }}>{emoji}</Text></Pressable>)}</View><Pressable style={[styles.primaryButton, !draft.name.trim() && { opacity: 0.45 }]} onPress={onSave} disabled={!draft.name.trim()}><Text style={styles.primaryText}>{editing ? 'Save changes' : 'Save pet'}</Text></Pressable></FormModal>;
 }
 
 function ReminderForm({ visible, editing, draft, onChange, onClose, onSave }: { visible: boolean; editing: boolean; draft: { title: string; time: string; category: CareReminder['category']; recurrence: CareReminder['recurrence'] }; onChange: (draft: { title: string; time: string; category: CareReminder['category']; recurrence: CareReminder['recurrence'] }) => void; onClose: () => void; onSave: () => void }) {
@@ -260,6 +270,11 @@ function ReminderForm({ visible, editing, draft, onChange, onClose, onSave }: { 
 function MomentForm({ visible, draft, onChange, onClose, onSave }: { visible: boolean; draft: { title: string; note: string; photoUri?: string }; onChange: (draft: { title: string; note: string; photoUri?: string }) => void; onClose: () => void; onSave: () => void }) {
   const pickPhoto = async () => { const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 }); if (!result.canceled) onChange({ ...draft, photoUri: result.assets[0].uri }); };
   return <FormModal visible={visible} title="Save a little moment" onClose={onClose}><Pressable style={styles.photoPicker} onPress={pickPhoto}>{draft.photoUri ? <Image source={{ uri: draft.photoUri }} style={styles.pickedImage} /> : <><Ionicons name="camera" size={31} color="#B6634B" /><Text style={styles.photoPickerText}>Choose a photo</Text></>}</Pressable><Text style={styles.inputLabel}>TITLE</Text><TextInput autoFocus value={draft.title} onChangeText={title => onChange({ ...draft, title })} placeholder="The sweetest afternoon…" placeholderTextColor="#AAA9A2" style={styles.input} /><Text style={styles.inputLabel}>NOTE (OPTIONAL)</Text><TextInput value={draft.note} onChangeText={note => onChange({ ...draft, note })} placeholder="What made it special?" placeholderTextColor="#AAA9A2" style={[styles.input, styles.multiline]} multiline /><Pressable style={[styles.primaryButton, !draft.title.trim() && { opacity: 0.45 }]} onPress={onSave} disabled={!draft.title.trim()}><Text style={styles.primaryText}>Add to scrapbook</Text></Pressable></FormModal>;
+}
+
+function SettingsModal({ visible, onClose, onDeleteAll }: { visible: boolean; onClose: () => void; onDeleteAll: () => void }) {
+  const confirmDelete = () => Alert.alert('Delete all Pawday data?', 'This removes pets, reminders, completions, and journal moments from this device.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete everything', style: 'destructive', onPress: onDeleteAll }]);
+  return <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}><View style={styles.modalShade}><View style={styles.modal}><View style={styles.modalHandle} /><Text style={styles.modalTitle}>Settings & data</Text><Text style={styles.inputLabel}>ABOUT YOUR DATA</Text><Text style={styles.emptyBody}>Pawday stores pet profiles, care routines, completions, and scrapbook moments locally on this device. Photos stay private unless you choose to share them from your device.</Text><Text style={styles.emptyBody}>Pawday organizes owner-provided routines and is not a veterinary or emergency service.</Text><Pressable style={styles.dashedAdd} onPress={confirmDelete}><Ionicons name="trash-outline" size={19} color="#B6634B" /><Text style={styles.dashedText}>Delete all local data</Text></Pressable><Pressable onPress={onClose}><Text style={styles.cancel}>Done</Text></Pressable></View></View></Modal>;
 }
 
 function FormModal({ visible, title, onClose, children }: { visible: boolean; title: string; onClose: () => void; children: React.ReactNode }) {
