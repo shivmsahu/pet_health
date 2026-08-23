@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pawday — Daily pet care, tracked properly</title>
+<meta name="description" content="Feeding, meds, walks and vet dates in one place. Build a streak, level up, and keep the health record your vet will thank you for. Free, private, works offline." />
+<meta property="og:title" content="Pawday — Daily pet care, tracked properly" />
+<meta property="og:description" content="The daily habit tracker for pet parents. Free, private, works offline." />
+<meta property="og:type" content="website" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /*
+    Pawday marketing site — implements DESIGN.md.
+    Warm cream canvas end to end, olive ink, IBM Plex Sans across every role,
+    white cards with 1px olive hairlines and no shadows, 4-8px radii, and one
+    saturated yellow pill carrying the primary action.
+    The system commits to a single light world by design: "the cream is the brand".
+  */
+  :root{
+    --primary:#f7a501; --primary-pressed:#dd9001; --on-primary:#23251d;
+    --ink:#23251d; --body:#4d4f46; --charcoal:#33342d;
+    --mute:#6c6e63; --ash:#9b9c92; --stone:#b6b7af;
+    --hairline:#bfc1b7; --hairline-soft:#dcdfd2; --on-dark:#ffffff;
+    --canvas:#eeefe9; --surface-soft:#e5e7e0; --surface-card:#ffffff;
+    --surface-doc:#fcfcfa; --surface-dark:#23251d;
+    --link-teal:#1078a3;
+    --accent-blue:#2c84e0; --accent-blue-soft:#dceaf6;
+    --accent-red:#cd4239; --accent-red-soft:#f7d6d3;
+    --accent-green:#2c8c66; --accent-green-soft:#d9eddf;
+    --accent-purple:#7c44a6; --accent-purple-soft:#e7d8ee;
+    --focus-ring:rgba(59,130,246,.5);
+
+    --r-xs:2px; --r-sm:4px; --r-md:6px; --r-lg:8px; --r-full:9999px;
+    --s-xs:4px; --s-sm:8px; --s-md:12px; --s-lg:16px; --s-xl:24px; --s-xxl:32px; --s-section:80px;
+
+    --font:'IBM Plex Sans','IBM Plex Sans Variable',-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --max:1280px;
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--canvas); color:var(--body);
+    font-family:var(--font); font-size:16px; line-height:1.5; font-weight:400;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,h4{margin:0; color:var(--ink); text-wrap:balance}
+  h1{font-size:36px; font-weight:700; line-height:1.22; letter-spacing:-.6px}
+  h2{font-size:24px; font-weight:700; line-height:1.33; letter-spacing:-.6px}
+  h3{font-size:20px; font-weight:700; line-height:1.4}
+  h4{font-size:18px; font-weight:600; line-height:1.56}
+  p{margin:0}
+  a{color:var(--link-teal); text-decoration:none}
+  a:hover{text-decoration:underline}
+  :focus-visible{outline:2px solid var(--accent-blue); outline-offset:2px}
+  ul{margin:0; padding:0; list-style:none}
+
+  .wrap{max-width:var(--max); margin:0 auto; padding:0 var(--s-xl)}
+  .eyebrow{
+    font-size:12px; font-weight:700; line-height:1.33; letter-spacing:.6px;
+    text-transform:uppercase; color:var(--mute); margin:0 0 var(--s-md);
+  }
+  .lede{font-size:16px; line-height:1.5; color:var(--body)}
+  .small{font-size:14px; font-weight:500; line-height:1.43; color:var(--mute)}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  /* ---------------- buttons ---------------- */
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:var(--s-sm);
+    height:40px; padding:0 var(--s-lg); border-radius:var(--r-md);
+    font-family:var(--font); font-size:14px; font-weight:700; line-height:1.5;
+    border:1px solid transparent; cursor:pointer; text-decoration:none;
+    transition:background-color .12s ease;
+  }
+  .btn:hover{text-decoration:none}
+  .btn-primary{background:var(--primary); color:var(--on-primary); border-color:var(--primary)}
+  .btn-primary:active{background:var(--primary-pressed); border-color:var(--primary-pressed)}
+  .btn-secondary{background:var(--surface-soft); color:var(--ink); border-color:var(--hairline)}
+  .btn-tertiary{background:transparent; color:var(--ink); padding:0 var(--s-md)}
+  .btn-pill{border-radius:var(--r-full)}
+
+  /* ---------------- nav ---------------- */
+  .nav{
+    position:sticky; top:0; z-index:20; background:var(--canvas);
+    border-bottom:1px solid var(--hairline-soft);
+  }
+  .nav-in{
+    max-width:var(--max); margin:0 auto; height:56px; padding:0 var(--s-xl);
+    display:flex; align-items:center; gap:var(--s-xl);
+  }
+  .brand{display:flex; align-items:center; gap:var(--s-sm); color:var(--ink); font-weight:700; font-size:18px}
+  .brand:hover{text-decoration:none}
+  .nav-links{display:flex; gap:var(--s-xl); margin-left:var(--s-sm)}
+  .nav-links a{color:var(--ink); font-size:16px; font-weight:600}
+  .nav-right{margin-left:auto; display:flex; align-items:center; gap:var(--s-lg)}
+  @media(max-width:860px){ .nav-links{display:none} }
+
+  /* ---------------- sections ---------------- */
+  section{padding:var(--s-section) 0}
+  @media(max-width:768px){ section{padding:64px 0} }
+  @media(max-width:480px){ section{padding:48px 0} }
+  .section-head{max-width:640px; margin-bottom:var(--s-xxl)}
+  .section-head p{margin-top:var(--s-md)}
+  .rule{height:1px; background:var(--hairline-soft); border:0; margin:0}
+
+  /* ---------------- hero ---------------- */
+  .hero{padding-top:56px}
+  .hero-grid{display:grid; grid-template-columns:1fr 460px; gap:56px; align-items:center}
+  @media(max-width:1024px){ .hero-grid{grid-template-columns:1fr; gap:40px} }
+  .hero h1{max-width:16ch}
+  .hero .lede{margin-top:var(--s-lg); max-width:52ch; font-size:18px; line-height:1.5}
+  .cta-row{display:flex; gap:var(--s-md); margin-top:var(--s-xl); flex-wrap:wrap}
+  .hero-meta{display:flex; gap:var(--s-xl); margin-top:var(--s-xl); flex-wrap:wrap}
+  .hero-meta span{display:flex; align-items:center; gap:6px; font-size:14px; font-weight:500; color:var(--mute)}
+
+  /* ---------------- cards ---------------- */
+  .card{
+    background:var(--surface-card); border:1px solid var(--hairline);
+    border-radius:var(--r-md); padding:var(--s-xl);
+  }
+  .card-doc{background:var(--surface-doc)}
+  .grid{display:grid; gap:var(--s-lg)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:1024px){ .g4{grid-template-columns:repeat(3,1fr)} }
+  @media(max-width:768px){ .g3,.g4{grid-template-columns:repeat(2,1fr)} }
+  @media(max-width:480px){ .g3,.g4{grid-template-columns:1fr} }
+  .tile-head{display:flex; align-items:center; gap:var(--s-md); margin-bottom:var(--s-md)}
+  .card h4{margin-bottom:var(--s-sm)}
+  .card p{font-size:15px; line-height:1.55}
+
+  /* mascot anchored in a card margin — the system's signature card variant */
+  .card-mascot{position:relative; overflow:hidden}
+  .card-mascot .mascot-slot{position:absolute; right:-8px; bottom:-10px; opacity:.9; pointer-events:none}
+  .card-mascot p{max-width:80%}
+
+  /* ---------------- callouts ---------------- */
+  .callout{
+    display:flex; gap:var(--s-md); padding:var(--s-lg) 20px;
+    border-radius:var(--r-md); color:var(--ink); font-size:16px; line-height:1.5;
+  }
+  .callout b{font-weight:600}
+  .c-blue{background:var(--accent-blue-soft)}
+  .c-green{background:var(--accent-green-soft)}
+  .c-red{background:var(--accent-red-soft)}
+  .c-purple{background:var(--accent-purple-soft)}
+
+  /* ---------------- phone mock ---------------- */
+  .phone{
+    background:var(--surface-card); border:1px solid var(--hairline);
+    border-radius:var(--r-lg); padding:var(--s-md); max-width:400px; margin:0 auto;
+  }
+  .screen{background:var(--canvas); border-radius:var(--r-md); padding:var(--s-lg); font-size:13px}
+  .s-nav{
+    display:flex; align-items:center; justify-content:space-between;
+    padding-bottom:var(--s-md); border-bottom:1px solid var(--hairline-soft); margin-bottom:var(--s-lg);
+  }
+  .s-nav .d{font-size:11px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--mute)}
+  .s-nav .g{font-size:14px; font-weight:600; color:var(--ink)}
+  .s-coins{background:var(--surface-soft); border-radius:var(--r-sm); padding:3px 8px; font-size:12px; font-weight:700; color:var(--ink)}
+  .s-card{background:var(--surface-card); border:1px solid var(--hairline); border-radius:var(--r-md); padding:var(--s-md); margin-bottom:var(--s-sm)}
+  .s-row{display:flex; align-items:center; gap:10px; padding:7px 0}
+  .s-row + .s-row{border-top:1px solid var(--hairline-soft)}
+  .s-ico{width:28px; height:28px; border-radius:var(--r-sm); background:var(--surface-soft); display:grid; place-items:center; font-size:14px}
+  .s-row b{font-size:13px; font-weight:600; color:var(--ink); display:block}
+  .s-row .m{font-size:12px; color:var(--mute)}
+  .s-row .t{margin-left:auto; font-size:13px}
+  .s-done b{color:var(--mute); text-decoration:line-through}
+  .s-bar{height:8px; border-radius:var(--r-sm); background:var(--surface-soft); overflow:hidden; margin-top:8px}
+  .s-bar i{display:block; height:100%; background:var(--primary); border-radius:var(--r-sm)}
+  .s-claim{background:var(--primary); color:var(--on-primary); border-radius:var(--r-md); padding:4px 10px; font-size:12px; font-weight:700}
+  .s-tabs{display:flex; gap:4px; border-top:1px solid var(--hairline); padding-top:var(--s-sm); margin-top:var(--s-md)}
+  .s-tabs span{flex:1; text-align:center; font-size:14px; padding:6px 0; border-radius:var(--r-md); opacity:.45}
+  .s-tabs span.on{background:var(--surface-card); border:1px solid var(--hairline); opacity:1}
+
+  /* ---------------- stat strip ---------------- */
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); border:1px solid var(--hairline); border-radius:var(--r-md); background:var(--surface-card)}
+  .stats div{padding:var(--s-xl); border-right:1px solid var(--hairline-soft)}
+  .stats div:last-child{border-right:0}
+  .stats b{display:block; font-size:24px; font-weight:700; letter-spacing:-.6px; color:var(--ink)}
+  .stats span{font-size:14px; font-weight:500; color:var(--mute)}
+  @media(max-width:768px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .stats div:nth-child(2){border-right:0}
+    .stats div:nth-child(-n+2){border-bottom:1px solid var(--hairline-soft)}
+  }
+
+  /* ---------------- table ---------------- */
+  .table-wrap{overflow-x:auto; border:1px solid var(--hairline); border-radius:var(--r-md); background:var(--surface-card)}
+  table{width:100%; border-collapse:collapse; min-width:560px}
+  th,td{padding:var(--s-md) 20px; text-align:left; border-bottom:1px solid var(--hairline-soft); font-size:15px}
+  thead th{font-size:16px; font-weight:700; color:var(--ink); background:var(--surface-doc); border-bottom:1px solid var(--hairline)}
+  th:not(:first-child),td:not(:first-child){text-align:center; width:170px}
+  tbody tr:last-child td{border-bottom:0}
+  td:first-child{color:var(--charcoal)}
+  .yes{color:var(--accent-green); font-weight:700}
+  .no{color:var(--stone)}
+  .strong{color:var(--ink); font-weight:600}
+
+  /* ---------------- pricing ---------------- */
+  .plans{display:grid; grid-template-columns:repeat(3,1fr); gap:var(--s-lg); align-items:start}
+  @media(max-width:900px){ .plans{grid-template-columns:1fr; max-width:460px} }
+  .plan{background:var(--surface-card); border:1px solid var(--hairline); border-radius:var(--r-md); padding:var(--s-xxl)}
+  .plan-featured{border-color:var(--primary); border-width:2px}
+  .plan-head{display:flex; align-items:center; gap:var(--s-sm); margin-bottom:var(--s-md)}
+  .badge{
+    display:inline-block; background:var(--accent-blue-soft); color:var(--accent-blue);
+    font-size:12px; font-weight:600; line-height:1.33; padding:2px 8px; border-radius:var(--r-full);
+  }
+  .price{font-size:36px; font-weight:700; letter-spacing:-.6px; color:var(--ink); line-height:1.2}
+  .price small{font-size:15px; font-weight:500; color:var(--mute); letter-spacing:0}
+  .plan ul{margin:var(--s-xl) 0; display:grid; gap:var(--s-md)}
+  .plan li{display:flex; gap:var(--s-sm); font-size:15px; line-height:1.55; color:var(--body)}
+  .plan li svg{flex:none; margin-top:4px}
+  .plan .btn{width:100%; margin-top:var(--s-sm)}
+
+  /* ---------------- faq ---------------- */
+  .faq{max-width:760px}
+  details{border-bottom:1px solid var(--hairline-soft); padding:var(--s-lg) 0}
+  details:first-of-type{border-top:1px solid var(--hairline-soft)}
+  summary{
+    cursor:pointer; list-style:none; display:flex; justify-content:space-between; gap:var(--s-lg);
+    font-size:16px; font-weight:600; color:var(--ink);
+  }
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:'+'; color:var(--mute); font-weight:500; font-size:20px; line-height:1}
+  details[open] summary::after{content:'–'}
+  details p{margin-top:var(--s-md); font-size:15px; line-height:1.71; color:var(--body); max-width:65ch}
+
+  /* ---------------- final ---------------- */
+  .final{display:flex; align-items:center; gap:var(--s-xxl); flex-wrap:wrap}
+  .final > div:first-child{flex:1; min-width:280px}
+
+  /* ---------------- footer ---------------- */
+  footer{border-top:1px solid var(--hairline); background:var(--canvas); padding:var(--s-xxl) 0}
+  .foot-grid{display:grid; grid-template-columns:1.4fr repeat(3,1fr); gap:var(--s-xl)}
+  @media(max-width:768px){ .foot-grid{grid-template-columns:repeat(2,1fr)} }
+  .foot-grid h5{
+    margin:0 0 var(--s-md); font-size:12px; font-weight:700; letter-spacing:.6px;
+    text-transform:uppercase; color:var(--mute);
+  }
+  .foot-grid li{margin-bottom:var(--s-sm)}
+  .foot-grid a{color:var(--body); font-size:14px; font-weight:500}
+  .foot-bottom{
+    display:flex; justify-content:space-between; gap:var(--s-lg); flex-wrap:wrap;
+    margin-top:var(--s-xxl); padding-top:var(--s-lg); border-top:1px solid var(--hairline-soft);
+    font-size:12px; font-weight:600; color:var(--mute);
+  }
+</style>
+</head>
+<body>
+
+<!--
+  Mascot set. Flat-colour hand-drawn pets are the entire decorative system —
+  there are no gradients, shadows or stock icons anywhere on the page.
+-->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+
+  <g id="m-dog">
+    <path d="M22 74c-1-13 4-25 18-25s19 12 18 25c-.4 5-4 8-10 8H32c-6 0-9.6-3-10-8z" fill="#f2c98a" stroke="#23251d" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M27 82v9M37 82v9M45 82v9M55 82v9" stroke="#23251d" stroke-width="3" stroke-linecap="round"/>
+    <path d="M58 62c7-2 12 3 12 9s-5 9-9 7" fill="#f2c98a" stroke="#23251d" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="40" cy="32" r="21" fill="#f2c98a" stroke="#23251d" stroke-width="3"/>
+    <path d="M20 16c-5-2-9 2-9 9s3 12 8 13" fill="#c98f4e" stroke="#23251d" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M60 16c5-2 9 2 9 9s-3 12-8 13" fill="#c98f4e" stroke="#23251d" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="33" cy="30" r="2.6" fill="#23251d"/><circle cx="47" cy="30" r="2.6" fill="#23251d"/>
+    <ellipse cx="40" cy="39" rx="5" ry="3.6" fill="#23251d"/>
+    <path d="M40 43v3M40 46c-2 2-5 2-6 0M40 46c2 2 5 2 6 0" stroke="#23251d" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+  </g>
+
+  <g id="m-cat">
+    <path d="M18 78c0-14 8-24 22-24s22 10 22 24c0 5-3 7-8 7H26c-5 0-8-2-8-7z" fill="#b7c8d8" stroke="#23251d" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M62 74c8 1 12-4 11-11" stroke="#23251d" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <circle cx="40" cy="34" r="20" fill="#b7c8d8" stroke="#23251d" stroke-width="3"/>
+    <path d="M22 20l-2-13 13 7z" fill="#b7c8d8" stroke="#23251d" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M58 20l2-13-13 7z" fill="#b7c8d8" stroke="#23251d" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M32 32c0 2 0 3.5 0 3.5M48 32c0 2 0 3.5 0 3.5" stroke="#23251d" stroke-width="3.4" stroke-linecap="round"/>
+    <path d="M40 40l-3 3 3 2 3-2z" fill="#23251d"/>
+    <path d="M14 36h12M14 41h12M54 36h12M54 41h12" stroke="#23251d" stroke-width="2" stroke-linecap="round" opacity=".65"/>
+  </g>
+
+  <g id="m-rabbit">
+    <path d="M22 78c0-13 8-21 18-21s18 8 18 21c0 4-3 6-7 6H29c-4 0-7-2-7-6z" fill="#e6cddd" stroke="#23251d" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="40" cy="44" r="17" fill="#e6cddd" stroke="#23251d" stroke-width="3"/>
+    <path d="M31 28c-3-13-1-22 3-22s6 9 4 21z" fill="#e6cddd" stroke="#23251d" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M49 28c3-13 1-22-3-22s-6 9-4 21z" fill="#e6cddd" stroke="#23251d" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="34" cy="43" r="2.4" fill="#23251d"/><circle cx="46" cy="43" r="2.4" fill="#23251d"/>
+    <path d="M40 49l-2.5 2.5L40 53l2.5-1.5z" fill="#23251d"/>
+    <circle cx="27" cy="49" r="3" fill="#cd4239" opacity=".3"/><circle cx="53" cy="49" r="3" fill="#cd4239" opacity=".3"/>
+  </g>
+
+  <g id="m-paw">
+    <ellipse cx="40" cy="52" rx="17" ry="14" fill="#f7a501" stroke="#23251d" stroke-width="3"/>
+    <ellipse cx="20" cy="30" rx="7" ry="9" fill="#f7a501" stroke="#23251d" stroke-width="3"/>
+    <ellipse cx="34" cy="22" rx="7" ry="9.5" fill="#f7a501" stroke="#23251d" stroke-width="3"/>
+    <ellipse cx="49" cy="24" rx="7" ry="9" fill="#f7a501" stroke="#23251d" stroke-width="3"/>
+    <ellipse cx="62" cy="34" rx="6.5" ry="8" fill="#f7a501" stroke="#23251d" stroke-width="3"/>
+  </g>
+
+  <g id="m-dog-clipboard">
+    <rect x="52" y="34" width="34" height="44" rx="3" fill="#fcfcfa" stroke="#23251d" stroke-width="3"/>
+    <rect x="62" y="29" width="14" height="9" rx="2.5" fill="#e5e7e0" stroke="#23251d" stroke-width="3"/>
+    <path d="M59 48h9M59 57h9M59 66h9" stroke="#bfc1b7" stroke-width="3" stroke-linecap="round"/>
+    <path d="M72 46l3 3 6-7M72 55l3 3 6-7" stroke="#2c8c66" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M6 78c-1-14 4-26 19-26s20 12 19 26c-.4 5-4 7-10 7H16c-6 0-9.6-2-10-7z" fill="#f2c98a" stroke="#23251d" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M12 85v8M22 85v8M30 85v8" stroke="#23251d" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="25" cy="34" r="20" fill="#f2c98a" stroke="#23251d" stroke-width="3"/>
+    <path d="M7 19c-5-2-8 2-8 9s3 11 7 12" fill="#c98f4e" stroke="#23251d" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M43 19c5-2 8 2 8 9s-3 11-7 12" fill="#c98f4e" stroke="#23251d" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="19" cy="32" r="2.6" fill="#23251d"/><circle cx="32" cy="32" r="2.6" fill="#23251d"/>
+    <ellipse cx="25" cy="41" rx="5" ry="3.5" fill="#23251d"/>
+    <path d="M25 45v3M25 48c-2 2-5 2-6 0M25 48c2 2 5 2 6 0" stroke="#23251d" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+    <path d="M44 62c8-1 12 3 12 8" stroke="#23251d" stroke-width="3" stroke-linecap="round" fill="none"/>
+  </g>
+
+  <g id="m-check">
+    <circle cx="40" cy="40" r="26" fill="#d9eddf" stroke="#23251d" stroke-width="3"/>
+    <path d="M28 41l8 8 17-18" stroke="#2c8c66" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+</defs></svg>
+
+<header class="nav">
+  <div class="nav-in">
+    <a class="brand" href="#top">
+      <svg width="26" height="26" viewBox="0 0 80 80" aria-hidden="true"><use href="#m-paw"/></svg>
+      Pawday
+    </a>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#streaks">Streaks</a>
+      <a href="#compare">Free vs Pro</a>
+      <a href="#pricing">Pricing</a>
+    </nav>
+    <div class="nav-right">
+      <a href="#faq" style="color:var(--ink); font-weight:600; font-size:16px">FAQ</a>
+      <a class="btn btn-primary btn-pill" href="#pricing">Get Pawday — free</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="eyebrow">Free · Private · Works offline</p>
+      <h1>Daily pet care, tracked properly.</h1>
+      <p class="lede">
+        Feeding, medication, walks and vet dates in one place. Build a streak you actually want to keep,
+        and end up with the health record your vet will thank you for.
+      </p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#pricing">Get Pawday — free</a>
+        <a class="btn btn-secondary" href="#features">See how it works</a>
+      </div>
+      <div class="hero-meta">
+        <span>🔒 Everything stays on your device</span>
+        <span>🚫 No ads, no account</span>
+        <span>⏱️ Set up in 60 seconds</span>
+      </div>
+    </div>
+
+    <div class="phone" role="img" aria-label="Pawday showing today's care list, a twelve day streak and daily quests">
+      <div class="screen">
+        <div class="s-nav">
+          <div>
+            <div class="d">Monday, 24 August</div>
+            <div class="g">Good morning, Mochi's human</div>
+          </div>
+          <span class="s-coins tnum">🪙 248</span>
+        </div>
+
+        <div class="s-card" style="display:flex; gap:12px; align-items:center">
+          <svg width="44" height="44" viewBox="0 0 80 100" aria-hidden="true"><use href="#m-dog"/></svg>
+          <div style="flex:1">
+            <div style="display:flex; align-items:center; gap:8px">
+              <b style="font-size:16px; color:var(--ink); font-weight:700">Mochi</b>
+              <span class="badge tnum" style="background:var(--accent-green-soft); color:var(--accent-green)">🔥 12 days</span>
+            </div>
+            <div class="m" style="font-size:12px; color:var(--mute)">Shiba Inu · 3 yrs</div>
+            <div class="s-bar"><i style="width:78%"></i></div>
+          </div>
+        </div>
+
+        <div class="s-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
+            <b style="font-size:13px; color:var(--ink); font-weight:700">Today's quests</b>
+            <span class="m tnum" style="font-size:12px; color:var(--mute)">2 of 3</span>
+          </div>
+          <div class="s-row" style="border:0; padding:6px 0">
+            <span>✅</span>
+            <b style="flex:1">Tick off 3 care tasks</b>
+            <span class="s-claim">Claim</span>
+          </div>
+          <div class="s-row" style="padding:6px 0">
+            <span>📸</span>
+            <b style="flex:1">Save one little moment</b>
+            <span class="m tnum">0/1</span>
+          </div>
+        </div>
+
+        <div class="s-card">
+          <div class="s-row s-done">
+            <span class="s-ico">🍲</span>
+            <div style="flex:1"><b>Breakfast</b><span class="m">8:00 AM</span></div>
+            <span class="t">✅</span>
+          </div>
+          <div class="s-row s-done">
+            <span class="s-ico">💊</span>
+            <div style="flex:1"><b>Daily vitamin</b><span class="m">9:30 AM</span></div>
+            <span class="t">✅</span>
+          </div>
+          <div class="s-row">
+            <span class="s-ico">🦮</span>
+            <div style="flex:1"><b>Evening walk</b><span class="m">5:30 PM · 30 min</span></div>
+            <span class="t" style="opacity:.4">⭕</span>
+          </div>
+        </div>
+
+        <div class="s-tabs"><span class="on">🏠</span><span>📅</span><span>🩺</span><span>🖼️</span><span>🏆</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="stats">
+      <div><b class="tnum">6</b><span>species with their own starter routine</span></div>
+      <div><b class="tnum">20</b><span>levels, New Friend to Best Friend Forever</span></div>
+      <div><b class="tnum">3</b><span>fresh quests every morning</span></div>
+      <div><b class="tnum">0</b><span>ads, accounts or servers</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Everything in one place</p>
+      <h2>Built for the bits you actually forget</h2>
+      <p class="lede">No spreadsheets. No screenshot of the vet's note. No "did someone already feed her?"</p>
+    </div>
+
+    <div class="grid g3">
+      <article class="card card-mascot">
+        <div class="tile-head">
+          <svg width="34" height="34" viewBox="0 0 80 80" aria-hidden="true"><use href="#m-check"/></svg>
+        </div>
+        <h4>A routine that fits your day</h4>
+        <p>Pick your pet and Pawday suggests a starter routine built for their species — walks for dogs, litter for cats, hay for rabbits, water tests for fish.</p>
+      </article>
+
+      <article class="card">
+        <div class="tile-head"><span style="font-size:28px">🩺</span></div>
+        <h4>The health record your vet wants</h4>
+        <p>Weight history, vaccinations with due-date warnings, vet visits, symptoms and costs. When they ask "when was her last booster?", you will just know.</p>
+      </article>
+
+      <article class="card card-mascot">
+        <div class="tile-head"><span style="font-size:28px">📸</span></div>
+        <h4>A scrapbook of the good days</h4>
+        <p>The nap in the sunbeam. The first swim. Save it with a mood and a photo, and let "on this day" bring it back a year later.</p>
+        <div class="mascot-slot"><svg width="76" height="90" viewBox="0 0 80 100" aria-hidden="true"><use href="#m-cat"/></svg></div>
+      </article>
+
+      <article class="card card-mascot">
+        <div class="tile-head"><span style="font-size:28px">🐾</span></div>
+        <h4>Every pet in the household</h4>
+        <p>Two dogs, a cat and a very demanding rabbit? Switch between them in one tap, each with their own routine and records.</p>
+        <div class="mascot-slot"><svg width="70" height="88" viewBox="0 0 80 100" aria-hidden="true"><use href="#m-rabbit"/></svg></div>
+      </article>
+
+      <article class="card">
+        <div class="tile-head"><span style="font-size:28px">📈</span></div>
+        <h4>Nudges from your own data</h4>
+        <p>"Evening walk keeps slipping — only 40% this fortnight." "Rabies booster due in 12 days." Specific, honest, never nagging.</p>
+      </article>
+
+      <article class="card">
+        <div class="tile-head"><span style="font-size:28px">💌</span></div>
+        <h4>A care card for the sitter</h4>
+        <p>Share the routine, medication times, vet number and the "she's scared of the hoover" notes as one tidy message.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="streaks">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Why it sticks</p>
+      <h2>Streaks, quests and levels — for the most important habit you have</h2>
+      <p class="lede">
+        Three fresh quests every morning. XP for every meal, walk and weigh-in. A streak that multiplies
+        what you earn, and a freeze for the day life gets in the way.
+      </p>
+    </div>
+
+    <div class="grid g4" style="margin-bottom:var(--s-xl)">
+      <div class="card card-doc"><h4>🎯 Daily quests</h4><p>Three every morning, drawn from what your pet actually needs today.</p></div>
+      <div class="card card-doc"><h4>🔥 Streak multiplier</h4><p>Up to 2× rewards at a 30-day streak. Loss aversion, put to good use.</p></div>
+      <div class="card card-doc"><h4>❄️ Streak freezes</h4><p>Earn them with paw coins and protect the day that got away from you.</p></div>
+      <div class="card card-doc"><h4>⭐ Sticker album</h4><p>Twelve collectibles that unlock as milestones land.</p></div>
+    </div>
+
+    <div class="callout c-blue">
+      <span>💡</span>
+      <p><b>XP is derived, not counted.</b> It is calculated from care that is still in your data, so it can never be farmed by ticking a task on and off — and deleting a record takes its XP back. The number means something, which is the entire point.</p>
+    </div>
+  </div>
+</section>
+
+<section id="compare">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Honest pricing</p>
+      <h2>Looking after your pet is never behind a paywall</h2>
+      <p class="lede">Free Pawday is a complete daily tracker for one pet. Pro adds depth, scale and a little sparkle.</p>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What you get</th><th>Free</th><th>Pro</th></tr></thead>
+        <tbody>
+          <tr><td>Pets</td><td class="tnum">1</td><td class="strong">Unlimited</td></tr>
+          <tr><td>Daily care reminders</td><td class="tnum">6</td><td class="strong">Unlimited</td></tr>
+          <tr><td>Notifications, streaks, quests, XP</td><td class="yes">Yes</td><td class="yes">Yes</td></tr>
+          <tr><td>Awards &amp; stickers</td><td>Core set</td><td class="strong">Full album</td></tr>
+          <tr><td>Scrapbook moments</td><td class="tnum">20</td><td class="strong">Unlimited</td></tr>
+          <tr><td>Weigh-ins &amp; weight chart</td><td class="tnum">8</td><td class="strong">Unlimited</td></tr>
+          <tr><td>Vaccination tracking</td><td class="tnum">3</td><td class="strong">Unlimited</td></tr>
+          <tr><td>Vet visit history</td><td class="no">—</td><td class="yes">Yes</td></tr>
+          <tr><td>Symptom log</td><td class="no">—</td><td class="yes">Yes</td></tr>
+          <tr><td>Spending tracker</td><td class="no">—</td><td class="yes">Yes</td></tr>
+          <tr><td>Care insights &amp; trends</td><td class="no">—</td><td class="yes">Yes</td></tr>
+          <tr><td>Theme packs</td><td class="tnum">1</td><td class="strong">6</td></tr>
+          <tr><td>Sitter care card</td><td class="no">—</td><td class="yes">Yes</td></tr>
+          <tr><td>Backup &amp; export</td><td class="no">—</td><td class="yes">Yes</td></tr>
+          <tr><td>Ads</td><td class="yes">None</td><td class="yes">None</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Pick a plan</p>
+      <h2>Start free. Upgrade when it earns it.</h2>
+      <p class="lede">Try Pro free for 7 days. Cancel any time — your pet data never leaves your device either way.</p>
+    </div>
+
+    <div class="plans">
+      <div class="plan">
+        <div class="plan-head"><h3>Free</h3></div>
+        <div class="price">$0 <small>forever</small></div>
+        <ul>
+          <li><svg width="16" height="16" viewBox="0 0 80 80" aria-hidden="true"><use href="#m-check"/></svg><span>1 pet, 6 daily reminders</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 80 80" aria-hidden="true"><use href="#m-check"/></svg><span>Notifications that actually fire</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 80 80" aria-hidden="true"><use href="#m-check"/></svg><span>Streaks, quests, XP and levels</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 80 80" aria-hidden="true"><use href="#m-check"/></svg><span>20 scrapbook moments</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 80 80" aria-hidden="true"><use href="#m-check"/></svg><span>8 weigh-ins, 3 vaccinations</span></li>
+        </ul>
+        <a class="btn btn-secondary" href="#top">Download Pawday</a>
+      </div>
+
+      <div class="plan plan-featured">
+        <div class="plan-head"><h3>Pro Yearly</h3><span class="badge">Best value · save 50%</span></div>
+        <div class="price">$29.99 <small>/year</small></div>
+        <p class="small">$2.50 a month, billed yearly. 7 days free first.</p>
+        <ul>
+          <li><svg width="16" height="16" viewBox="0 0 80 80" aria-hidden="true"><use href="#m-check"/></svg><span>Unlimited pets and reminders</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 80 80" aria-hidden="true"><use href="#m-check"/></svg><span>Full health vault — visits, symptoms, jabs</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 80 80" aria-hidden="true"><use href="#m-check"/></svg><span>Care insights and spending</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 80 80" aria-hidden="true"><use href="#m-check"/></svg><span>All six theme packs</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 80 80" aria-hidden="true"><use href="#m-check"/></svg><span>Sitter care card and full backup</span></li>
+        </ul>
+        <a class="btn btn-primary" href="#top">Start 7-day free trial</a>
+      </div>
+
+      <div class="plan">
+        <div class="plan-head"><h3>Pro Lifetime</h3><span class="badge">Pay once</span></div>
+        <div class="price">$69.99 <small>once</small></div>
+        <p class="small">Never think about it again.</p>
+        <ul>
+          <li><svg width="16" height="16" viewBox="0 0 80 80" aria-hidden="true"><use href="#m-check"/></svg><span>Everything in Pro Yearly</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 80 80" aria-hidden="true"><use href="#m-check"/></svg><span>Yours for the life of the app</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 80 80" aria-hidden="true"><use href="#m-check"/></svg><span>Every future Pro feature included</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 80 80" aria-hidden="true"><use href="#m-check"/></svg><span>No renewals, no reminders</span></li>
+        </ul>
+        <a class="btn btn-secondary" href="#top">Buy Lifetime</a>
+      </div>
+    </div>
+
+    <p class="small" style="margin-top:var(--s-lg)">Monthly also available at $4.99. Prices in USD; regional pricing applies.</p>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap faq">
+    <div class="section-head">
+      <p class="eyebrow">Questions</p>
+      <h2>The things people ask</h2>
+    </div>
+
+    <details open>
+      <summary>Is my pet's data private?</summary>
+      <p>Completely. Pawday stores everything locally on your device. There is no account, no login, no server and no analytics on your pet's health records. If you delete the app the data goes with it, which is exactly why Pro includes a full backup export.</p>
+    </details>
+    <details>
+      <summary>Does the free version actually work, or is it a demo?</summary>
+      <p>It genuinely works. One pet, six daily reminders, real notifications, streaks, quests, awards, a twenty-photo scrapbook and weight tracking — free forever. We gate depth and scale, never care itself.</p>
+    </details>
+    <details>
+      <summary>Should I pick the subscription or Lifetime?</summary>
+      <p>If you want to decide once and never think about it again, Lifetime is the better deal after about two and a half years — and pets are a decade-long commitment. If you would rather try it properly first, the yearly plan starts with seven free days and costs less than a bag of treats a month.</p>
+    </details>
+    <details>
+      <summary>Which pets does it support?</summary>
+      <p>Dogs, cats, rabbits, birds, small pets, reptiles and fish each get their own suggested starter routine — hay top-ups for rabbits, water tests for fish, heat and humidity checks for reptiles. Anything else fits under "Other" with a routine you write yourself.</p>
+    </details>
+    <details>
+      <summary>Will it nag me?</summary>
+      <p>No. Reminders fire at the times you set, plus at most one gentle nudge in the evening if something is still open. Miss a day and Pawday says "streaks end, care doesn't" — never guilt, never a storm of red badges.</p>
+    </details>
+    <details>
+      <summary>Is this a substitute for a vet?</summary>
+      <p>Absolutely not, and it never pretends to be. Pawday keeps records and reminders. Diagnosis and treatment are your vet's job — the app just makes sure you turn up to the appointment with the facts.</p>
+    </details>
+
+    <div class="callout c-purple" style="margin-top:var(--s-xxl)">
+      <span>📘</span>
+      <p><b>Adopting soon?</b> Shelters and rescues can request free three-month Pro codes for adopters. New owners are exactly who this was built for.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="card final">
+      <div>
+        <h2>They only get one life with you.</h2>
+        <p class="lede" style="margin-top:var(--s-md); max-width:46ch">Make every day of it count — starting with today's walk.</p>
+        <div class="cta-row"><a class="btn btn-primary" href="#pricing">Get Pawday — free</a></div>
+      </div>
+      <svg width="150" height="150" viewBox="-4 0 96 100" aria-hidden="true"><use href="#m-dog-clipboard"/></svg>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="#top">
+          <svg width="24" height="24" viewBox="0 0 80 80" aria-hidden="true"><use href="#m-paw"/></svg>
+          Pawday
+        </a>
+        <p class="small" style="margin-top:var(--s-md); max-width:34ch">Made for the ones who wait by the door. Local-first, ad-free, no account required.</p>
+      </div>
+      <div>
+        <h5>Product</h5>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#streaks">Streaks &amp; quests</a></li>
+          <li><a href="#compare">Free vs Pro</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Resources</h5>
+        <ul>
+          <li><a href="#faq">FAQ</a></li>
+          <li><a href="#faq">Privacy</a></li>
+          <li><a href="#faq">For shelters</a></li>
+          <li><a href="#faq">For vets</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Contact</h5>
+        <ul>
+          <li><a href="mailto:hello@pawday.app">hello@pawday.app</a></li>
+          <li><a href="#top">Press kit</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Pawday</span>
+      <span>Pawday keeps records and reminders. It is not a substitute for veterinary advice.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
