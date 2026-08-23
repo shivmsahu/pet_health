@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Image, Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../AppContext';
@@ -19,6 +19,8 @@ import { careScore, levelFromXp, questStatuses, totalXp, weeklyChallenge } from 
 import { Tip, tipsFor } from '../suggestions';
 import { radius, space, type } from '../theme';
 import { Callout, Card, EmptyState, PawButton, ProBadge, ProgressBar, SectionHeader, Sparkbars, StatTile, Text } from '../ui';
+import { Anim, AnimatedPressable, Nudge, usePressScale } from '../motion';
+import { cue } from '../feedback';
 
 export type Nav = (tab: 'Home' | 'Schedule' | 'Health' | 'Journal' | 'Rewards') => void;
 
@@ -55,7 +57,9 @@ export function Home({
 
       <Card style={{ marginTop: space.md }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Text style={{ fontSize: 26 }}>{level.emoji}</Text>
+          <Nudge trigger={level.level} amount={0.3}>
+            <Text style={{ fontSize: 26 }}>{level.emoji}</Text>
+          </Nudge>
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <Text style={type('bodySmStrong', p.ink)}>
@@ -103,12 +107,7 @@ export function Home({
               {quest.claimed ? (
                 <Ionicons name="checkmark-done-circle" size={24} color={p.accentGreen} />
               ) : quest.done ? (
-                <Pressable
-                  onPress={() => app.claimQuest(quest.id)}
-                  style={{ backgroundColor: p.primary, borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 7 }}
-                >
-                  <Text style={type('captionXs', p.onPrimary)}>Claim</Text>
-                </Pressable>
+                <ClaimButton onPress={() => app.claimQuest(quest.id)} />
               ) : (
                 <Text style={type('captionXs', p.mute)}>
                   {quest.value}/{quest.target}
@@ -186,7 +185,13 @@ export function Home({
         <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
           <StatTile emoji={'\u{1F525}'} value={`${streak}`} label="day streak" tint={p.accentRedSoft} />
           <StatTile emoji={'\u{2705}'} value={`${progress.completed}`} label="done today" tint={p.accentGreenSoft} />
-          <StatTile emoji={'\u{2764}'} value={`${score}`} label="care score" tint={p.accentBlueSoft} />
+          <StatTile
+            emoji={'\u{2764}'}
+            value={`${score}`}
+            label="care score"
+            tint={p.accentBlueSoft}
+            icon={<Anim name="heart-pulse" size={22} loop speed={0.9} fallback={<Text style={{ fontSize: 18 }}>{'\u{2764}'}</Text>} />}
+          />
         </View>
       </Card>
 
@@ -244,23 +249,54 @@ function TipCard({ tip, onDismiss, onAction }: { tip: Tip; onDismiss: () => void
 
 function QuickAction({ emoji, label, onPress }: { emoji: string; label: string; onPress: () => void }) {
   const { palette: p } = useApp();
+  const [pressed, setPressed] = useState(false);
+  const dip = usePressScale(pressed);
   return (
-    <Pressable
-      onPress={onPress}
-      style={{
-        flex: 1,
-        backgroundColor: p.surfaceCard,
-        borderRadius: radius.lg,
-        borderWidth: 1,
-        borderColor: p.hairline,
-        paddingVertical: 16,
-        alignItems: 'center',
-        gap: 6,
+    <AnimatedPressable
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      onPress={() => {
+        cue('tap');
+        onPress();
       }}
+      style={[
+        dip,
+        {
+          flex: 1,
+          backgroundColor: p.surfaceCard,
+          borderRadius: radius.lg,
+          borderWidth: 1,
+          borderColor: p.hairline,
+          paddingVertical: 16,
+          alignItems: 'center',
+          gap: 6,
+        },
+      ]}
     >
       <Text style={{ fontSize: 22 }}>{emoji}</Text>
       <Text style={type('captionXs', p.ink)}>{label}</Text>
-    </Pressable>
+    </AnimatedPressable>
+  );
+}
+
+/**
+ * The one pill in the app whose whole job is to be tapped for a reward, so it
+ * gets the press dip the rest of the quest row does not need.
+ */
+function ClaimButton({ onPress }: { onPress: () => void }) {
+  const { palette: p } = useApp();
+  const [pressed, setPressed] = useState(false);
+  const dip = usePressScale(pressed, 0.92);
+  return (
+    <AnimatedPressable
+      accessibilityRole="button"
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      onPress={onPress}
+      style={[dip, { backgroundColor: p.primary, borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 7 }]}
+    >
+      <Text style={type('captionXs', p.onPrimary)}>Claim</Text>
+    </AnimatedPressable>
   );
 }
 
@@ -300,10 +336,23 @@ export function PetHero({ pet, score, streak, onPress }: { pet: Pet; score: numb
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Text style={type('headingLg', p.ink)}>{pet.name}</Text>
             {streak > 0 && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: p.surfaceCard, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3 }}>
-                <Text style={{ fontSize: 12 }}>{'\u{1F525}'}</Text>
-                <Text style={type('captionXs', p.ink)}>{streak}</Text>
-              </View>
+              <Nudge trigger={streak}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 2,
+                    backgroundColor: p.surfaceSoft,
+                    borderRadius: radius.pill,
+                    paddingLeft: 4,
+                    paddingRight: 9,
+                    paddingVertical: 3,
+                  }}
+                >
+                  <Anim name="streak-flame" size={17} loop fallback={<Text style={{ fontSize: 12 }}>{'\u{1F525}'}</Text>} />
+                  <Text style={type('captionXs', p.ink)}>{streak}</Text>
+                </View>
+              </Nudge>
             )}
           </View>
           <Text style={[type('captionSm', p.body), { marginTop: 2 }]}>
@@ -319,6 +368,15 @@ export function PetHero({ pet, score, streak, onPress }: { pet: Pet; score: numb
   );
 }
 
+/**
+ * One care task. Tapping it is the single most repeated action in the app, so
+ * it carries the fullest response: a paw stamps over the category icon, the
+ * card turns green, and the context fires the haptic and the toast.
+ *
+ * The stamp is keyed by a counter rather than a boolean, so ticking, unticking
+ * and ticking again replays it instead of leaving a finished animation on
+ * screen.
+ */
 export function TaskRow({
   reminder,
   date,
@@ -328,21 +386,17 @@ export function TaskRow({
   date: string;
   onLongPress?: () => void;
 }) {
-  const { palette: p, toggleTask, notify, state } = useApp();
+  const { palette: p, toggleTask } = useApp();
   const done = isCompleted(reminder, date);
+  const [stamp, setStamp] = useState(0);
+  const [stamping, setStamping] = useState(false);
 
   const press = () => {
-    toggleTask(reminder.id, date);
     if (!done) {
-      const remaining = remindersForDate(state.reminders, reminder.petId, date).filter(
-        task => task.id !== reminder.id && !isCompleted(task, date),
-      ).length;
-      notify(
-        remaining === 0
-          ? { emoji: '\u{1F389}', title: 'Perfect day!', body: `+${10} XP and a ${40} XP bonus.` }
-          : { emoji: '\u{2705}', title: '+10 XP', body: `${remaining} left today` },
-      );
+      setStamp(current => current + 1);
+      setStamping(true);
     }
+    toggleTask(reminder.id, date);
   };
 
   return (
@@ -350,7 +404,11 @@ export function TaskRow({
       accessibilityRole="checkbox"
       accessibilityState={{ checked: done }}
       onPress={press}
-      onLongPress={onLongPress}
+      onLongPress={() => {
+        if (!onLongPress) return;
+        cue('tap');
+        onLongPress();
+      }}
       style={{
         flexDirection: 'row',
         alignItems: 'center',
@@ -365,13 +423,14 @@ export function TaskRow({
     >
       <View style={{ width: 44, height: 44, borderRadius: radius.md, backgroundColor: p.surfaceSoft, alignItems: 'center', justifyContent: 'center' }}>
         <Text style={{ fontSize: 20 }}>{CATEGORY_EMOJI[reminder.category]}</Text>
+        {stamping && (
+          <View pointerEvents="none" style={{ position: 'absolute', left: -12, top: -12, right: -12, bottom: -12, alignItems: 'center', justifyContent: 'center' }}>
+            <Anim key={stamp} name="paw-check" size={68} tint={p.accentGreen} onFinish={() => setStamping(false)} />
+          </View>
+        )}
       </View>
       <View style={{ flex: 1 }}>
-        <Text
-          style={[type('captionMd', p.ink), { textDecorationLine: done ? 'line-through' : 'none' }]}
-        >
-          {reminder.title}
-        </Text>
+        <Text style={[type('captionMd', p.ink), { textDecorationLine: done ? 'line-through' : 'none' }]}>{reminder.title}</Text>
         <Text style={[type('captionSm', p.body), { marginTop: 2 }]}>
           {formatTime(reminder.time)}
           {reminder.durationMinutes ? ` · ${reminder.durationMinutes} min` : ''}

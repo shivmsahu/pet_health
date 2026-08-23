@@ -17,6 +17,7 @@ import {
 } from '../game';
 import { Palette, radius, space, type } from '../theme';
 import { Card, EmptyState, PawButton, Pop, ProBadge, ProgressBar, SectionHeader, Sparkbars, StatTile, Subtitle, Text, Title } from '../ui';
+import { Anim, Nudge } from '../motion';
 import { LockedCard } from './Health';
 
 export function Rewards() {
@@ -41,9 +42,14 @@ export function Rewards() {
       <Subtitle style={{ marginTop: 4 }}>Tiny wins, stacked up into a beautiful life together.</Subtitle>
 
       <Card style={{ marginTop: space.md, alignItems: 'center', paddingVertical: space.lg }} tint={p.surfaceDoc}>
-        <Pop>
-          <Text style={{ fontSize: 52 }}>{level.emoji}</Text>
-        </Pop>
+        <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+          <Anim name="trophy-sparkle" size={116} loop speed={0.7} tint={p.primary} style={{ position: 'absolute', opacity: 0.35 }} />
+          <Nudge trigger={level.level} amount={0.3}>
+            <Pop>
+              <Text style={{ fontSize: 52 }}>{level.emoji}</Text>
+            </Pop>
+          </Nudge>
+        </View>
         <Text style={[type('headingLg', p.ink), { marginTop: 6 }]}>
           Level {level.level} · {level.title}
         </Text>
@@ -55,7 +61,13 @@ export function Rewards() {
           </Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 10, marginTop: 16, width: '100%' }}>
-          <StatTile emoji={'\u{1F525}'} value={`${streak}`} label="day streak" tint={p.surfaceCard} />
+          <StatTile
+            emoji={'\u{1F525}'}
+            value={`${streak}`}
+            label="day streak"
+            tint={p.surfaceCard}
+            icon={streak > 0 ? <Anim name="streak-flame" size={24} loop fallback={<Text style={{ fontSize: 18 }}>{'\u{1F525}'}</Text>} /> : undefined}
+          />
           <StatTile emoji={'\u{26A1}'} value={`${multiplier}x`} label="XP streak bonus" tint={p.surfaceCard} />
           <StatTile emoji={'\u{1FA99}'} value={`${state.game.coins}`} label="paw coins" tint={p.surfaceCard} />
         </View>

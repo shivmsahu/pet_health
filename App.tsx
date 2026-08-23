@@ -8,7 +8,9 @@ import { CareReminder, JournalMoment, Pet } from './src/domain';
 import { COACH_MARKS } from './src/suggestions';
 import { radius, space, type } from './src/theme';
 import { FONT_ASSETS } from './src/fonts';
-import { Card, Loading, PawButton, ProgressBar, Text, ToastHost } from './src/ui';
+import { Card, CelebrationHost, Loading, PawButton, ProgressBar, Text, ToastHost } from './src/ui';
+import { Anim, Nudge } from './src/motion';
+import { cue } from './src/feedback';
 import { Onboarding } from './src/screens/Onboarding';
 import { Home, Nav } from './src/screens/Home';
 import { Schedule } from './src/screens/Schedule';
@@ -117,6 +119,7 @@ function Shell() {
           app.markCoachMarksSeen();
         }}
       />
+      <CelebrationHost />
       <ToastHost />
     </SafeAreaView>
   );
@@ -148,20 +151,22 @@ function Header({ onSettings }: { onSettings: () => void }) {
           {pet ? `, ${pet.name}'s human` : ''}
         </Text>
       </View>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: space.xs + 2,
-          backgroundColor: p.surfaceSoft,
-          borderRadius: radius.sm,
-          paddingHorizontal: space.sm,
-          paddingVertical: space.xs,
-        }}
-      >
-        <Text style={{ fontSize: 12 }}>{'\u{1FA99}'}</Text>
-        <Text style={[type('captionMd', p.ink), { fontVariant: ['tabular-nums'] }]}>{state.game.coins}</Text>
-      </View>
+      <Nudge trigger={state.game.coins}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: space.xs + 2,
+            backgroundColor: p.surfaceSoft,
+            borderRadius: radius.sm,
+            paddingHorizontal: space.sm,
+            paddingVertical: space.xs,
+          }}
+        >
+          <Text style={{ fontSize: 12 }}>{'\u{1FA99}'}</Text>
+          <Text style={[type('captionMd', p.ink), { fontVariant: ['tabular-nums'] }]}>{state.game.coins}</Text>
+        </View>
+      </Nudge>
       <Pressable onPress={onSettings} accessibilityLabel="Settings" hitSlop={8}>
         <Ionicons name="settings-outline" size={20} color={p.body} />
       </Pressable>
@@ -195,7 +200,10 @@ function TabBar({ selected, onSelect }: { selected: Tab; onSelect: (tab: Tab) =>
             key={item.name}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
-            onPress={() => onSelect(item.name)}
+            onPress={() => {
+              if (!active) cue('select');
+              onSelect(item.name);
+            }}
             style={{
               flex: 1,
               alignItems: 'center',
@@ -208,11 +216,22 @@ function TabBar({ selected, onSelect }: { selected: Tab; onSelect: (tab: Tab) =>
               borderColor: active ? p.hairline : 'transparent',
             }}
           >
-            <Ionicons
-              name={active ? item.icon : (`${item.icon}-outline` as keyof typeof Ionicons.glyphMap)}
-              size={19}
-              color={active ? p.ink : p.mute}
-            />
+            {active && item.name === 'Rewards' ? (
+              <Anim
+                name="trophy-sparkle"
+                size={26}
+                style={{ width: 26, height: 19 }}
+                loop
+                tint={p.ink}
+                fallback={<Ionicons name={item.icon} size={19} color={p.ink} />}
+              />
+            ) : (
+              <Ionicons
+                name={active ? item.icon : (`${item.icon}-outline` as keyof typeof Ionicons.glyphMap)}
+                size={19}
+                color={active ? p.ink : p.mute}
+              />
+            )}
             <Text style={type('captionXs', active ? p.ink : p.mute)}>{item.label}</Text>
           </Pressable>
         );

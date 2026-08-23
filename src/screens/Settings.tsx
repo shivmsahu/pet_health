@@ -1,11 +1,13 @@
 import React from 'react';
-import { Alert, Image, Pressable, Share, View } from 'react-native';
+import { Alert, Image, Pressable, Share, Switch, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../AppContext';
 import { Pet, describeAge, emptyState, formatRecurrence, formatTime, remindersForDate } from '../domain';
 import { exportState } from '../storage';
 import { THEMES, radius, space, type } from '../theme';
 import { Card, Chip, ChipRow, Label, PawButton, ProBadge, Sheet, Text } from '../ui';
+import { MOTION_PLATFORM_NOTE } from '../motion';
+import { cue, setFeedbackPrefs } from '../feedback';
 
 /** A plain-text handover for whoever is looking after them while you are away. */
 function careCardText(app: ReturnType<typeof useApp>, pet: Pet): string {
@@ -78,6 +80,20 @@ export function SettingsSheet({
         },
       },
     ]);
+
+  /**
+   * Flip a feedback switch and immediately demonstrate it.
+   *
+   * The context syncs the module-level preference cache in an effect, which
+   * lands a frame too late to hear — so push it by hand first, otherwise
+   * turning sound on is answered by silence.
+   */
+  const setFeel = (patch: { sound?: boolean; haptics?: boolean }, demo?: Parameters<typeof cue>[0]) => {
+    const next = { sound: state.settings.sound, haptics: state.settings.haptics, ...patch };
+    app.patchSettings(patch);
+    setFeedbackPrefs(next);
+    if (demo) cue(demo);
+  };
 
   const confirmRemovePet = (target: Pet) =>
     Alert.alert(`Remove ${target.name}?`, 'Their reminders, memories and health records go too.', [
@@ -197,6 +213,34 @@ export function SettingsSheet({
         ))}
       </ChipRow>
 
+      <Label>SOUND & FEEL</Label>
+      <View style={{ gap: 10 }}>
+        <ToggleRow
+          icon="volume-medium-outline"
+          title="Sound effects"
+          sub="Soft knocks for care, brighter notes for rewards"
+          value={state.settings.sound}
+          onChange={next => setFeel({ sound: next }, next ? 'reward' : undefined)}
+        />
+        <ToggleRow
+          icon="phone-portrait-outline"
+          title="Haptics"
+          sub="A tap in the hand when something lands"
+          value={state.settings.haptics}
+          onChange={next => setFeel({ haptics: next }, next ? 'toggleOn' : undefined)}
+        />
+        <ToggleRow
+          icon="sparkles-outline"
+          title="Animations"
+          sub={MOTION_PLATFORM_NOTE ?? 'Paw stamps, confetti and the little flourishes'}
+          value={state.settings.motion}
+          onChange={next => {
+            app.patchSettings({ motion: next });
+            if (next) app.celebrate('confetti');
+          }}
+        />
+      </View>
+
       <Label>SHARING & DATA</Label>
       <View style={{ gap: 10 }}>
         <SettingRow icon="mail-outline" title="Sitter care card" sub="Share the routine with whoever is watching them" pro={!pro} onPress={shareCareCard} />
@@ -210,6 +254,50 @@ export function SettingsSheet({
         Pawday keeps everything on your device. No account, no cloud, no ads.
       </Text>
     </Sheet>
+  );
+}
+
+/** A settings row whose control is a switch rather than a chevron. */
+function ToggleRow({
+  icon,
+  title,
+  sub,
+  value,
+  onChange,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  sub: string;
+  value: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  const { palette: p } = useApp();
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        padding: 14,
+        borderRadius: radius.lg,
+        backgroundColor: p.surfaceCard,
+        borderWidth: 1,
+        borderColor: p.hairline,
+      }}
+    >
+      <Ionicons name={icon} size={20} color={p.body} />
+      <View style={{ flex: 1 }}>
+        <Text style={type('captionMd', p.ink)}>{title}</Text>
+        <Text style={[type('captionSm', p.body), { marginTop: 2 }]}>{sub}</Text>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onChange}
+        trackColor={{ false: p.hairline, true: p.primary }}
+        thumbColor={p.surfaceCard}
+        ios_backgroundColor={p.hairline}
+      />
+    </View>
   );
 }
 

@@ -16,9 +16,10 @@ import { CATEGORY_EMOJI, SPECIES, Species, dateKey, formatRecurrence, formatTime
 import { StarterTask, starterPack } from '../suggestions';
 import { radius, space, type } from '../theme';
 import { Card, Field, Label, PawButton, ProgressBar, Subtitle, Text, Title } from '../ui';
+import { cue } from '../feedback';
 
 export function Onboarding() {
-  const { palette: p, savePet, addStarterTasks, finishOnboarding, notify } = useApp();
+  const { palette: p, savePet, addStarterTasks, finishOnboarding, notify, celebrate } = useApp();
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [species, setSpecies] = useState<Species>('Dog');
@@ -62,6 +63,8 @@ export function Onboarding() {
       await Notifications.requestPermissionsAsync().catch(() => undefined);
     }
     finishOnboarding();
+    cue('unlock');
+    celebrate('confetti');
     notify({ emoji: '\u{1F389}', title: `${name.trim() || 'Your pet'} is all set!`, body: 'Tap a task to tick it off and earn your first XP.' });
   };
 

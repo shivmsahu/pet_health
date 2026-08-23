@@ -10,7 +10,7 @@ No account. No cloud. No ads. Everything lives on the device.
 ```bash
 npm install
 npm run web        # or npm run ios / npm run android
-npm test           # domain, gating, gamification and migration tests
+npm test           # domain, gating, gamification, migration and feedback-policy tests
 npm run typecheck
 ```
 
@@ -53,6 +53,45 @@ callout family. `src/theme.ts` holds the tokens and `type()` resolves every text
 from weight and size rather than colour. Theme packs vary only the accent hue; Night Olive is the single
 inverted pack.
 
+## Sound, haptics and motion
+
+Every response in the app resolves through one vocabulary of *cues* — `cue('toggleOn')`, `cue('reward')`,
+`cue('blocked')` — defined in [`src/cues.ts`](./src/cues.ts) and delivered by
+[`src/feedback.ts`](./src/feedback.ts). Three rules keep it from becoming noise:
+
+- **Everyday touch is haptic-only.** Tapping a button or switching tabs is felt, never heard. Sound is
+  reserved for the care loop and the game layer.
+- **Nothing is announced by audio alone.** Every cue that carries meaning also carries a haptic and a
+  visible change, so the app is complete with the volume down.
+- **Cues answer a touch, never a render.** Nothing fires because a screen appeared.
+
+Sound, haptics and animation each have their own switch in Settings; the animation switch doubles as the
+reduce-motion escape hatch, and turning it off leaves a still, complete interface rather than gaps.
+
+### The assets are generated, not licensed
+
+Both the sounds and the vector animations are synthesised by scripts in [`tools/`](./tools) and committed
+under `assets/`. Nothing is downloaded from a marketplace, nothing needs attribution, and nothing is
+fetched at runtime.
+
+```bash
+npm run assets     # regenerate assets/sounds/*.wav and assets/lottie/*.json
+```
+
+- **`tools/make-sounds.mjs`** — seven UI sounds as struck-metal and wooden-mallet tones (sine partials with
+  fast attack and exponential decay) in a C pentatonic set, so no two cues clash back to back. Each is
+  mixed to its own peak: a tick fires dozens of times a day, a level-up a handful of times a month.
+  Playback obeys the ring/silent switch and mixes with whatever else is playing.
+- **`tools/make-lottie.mjs`** — seven Bodymovin animations: a paw stamping over a completed task, a
+  confetti burst, a flickering streak flame, a beating care-score heart, a twinkling trophy, a walking paw
+  trail for empty states, and a flipping coin. Layers are named so
+  [`colorFilters`](./src/motion.tsx) can re-tint one file for all six theme packs.
+
+Animations are native-only. `lottie-react-native`'s web entry needs a WebAssembly player, and taking that
+on would trade the "nothing is fetched at runtime" property for animation on a preview target — so
+[`src/lottie-player.web.ts`](./src/lottie-player.web.ts) resolves to nothing and every animated component
+renders the static icon it already carries as a fallback.
+
 ## Free vs Pro
 
 The rule: **looking after your pet is never behind a paywall.** Free is a complete daily tracker for one
@@ -87,11 +126,17 @@ src/game.ts              XP, levels, quests, weekly challenge, stickers, awards
 src/pro.ts               tier limits, feature gates, plan catalogue
 src/suggestions.ts       species starter packs, contextual tips, tutorial copy
 src/theme.ts             DESIGN.md tokens: palettes, radii, spacing, type scale
+src/cues.ts              the feedback vocabulary: which cue means what (pure, tested)
+src/feedback.ts          haptics and UI sound playback
+src/motion.tsx           Lottie wrapper, press-dip and value-nudge animations
+src/lottie-player.ts     the player, split per platform (.web.ts resolves to nothing)
 src/fonts.ts             IBM Plex Sans binaries (kept out of the token layer)
 src/storage.ts           persistence, v1→v2 migration, export/import
 src/AppContext.tsx       state, actions, notifications, gating, toasts
 src/ui.tsx               shared components (cards, callouts, buttons, sheets)
 src/screens/             Onboarding, Home, Schedule, Health, Journal, Rewards, Paywall, Forms, Settings
+assets/sounds/           generated .wav cues        (tools/make-sounds.mjs)
+assets/lottie/           generated .json animations  (tools/make-lottie.mjs)
 landing/index.html       marketing landing page (standalone, deployable anywhere)
 DESIGN.md                the visual system this UI implements
 MARKETING.md             positioning, ICP, pricing rationale, channels, launch plan

@@ -5,6 +5,7 @@ import { useApp } from '../AppContext';
 import { FEATURE_COPY, PLANS, PRO_BULLETS } from '../pro';
 import { THEMES, radius, space, type } from '../theme';
 import { Card, PawButton, ProBadge, Text } from '../ui';
+import { cue } from '../feedback';
 
 export function Paywall() {
   const { paywallFor, closePaywall, palette: p, startPro, pet } = useApp();
@@ -93,7 +94,10 @@ export function Paywall() {
               return (
                 <Pressable
                   key={option.id}
-                  onPress={() => setPlan(option.id)}
+                  onPress={() => {
+                    cue('select');
+                    setPlan(option.id);
+                  }}
                   style={{
                     borderRadius: radius.lg,
                     borderWidth: 2,

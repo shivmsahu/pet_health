@@ -27,6 +27,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { FONT_FAMILIES, Palette, radius, space, type } from './theme';
 import { useApp, useTheme } from './AppContext';
+import { Anim, AnimatedPressable, usePressScale } from './motion';
+import { Cue } from './cues';
+import { cue } from './feedback';
 
 
 /**
@@ -179,6 +182,7 @@ export function PawButton({
   disabled,
   style,
   small,
+  feedback,
 }: {
   label: string;
   onPress: () => void;
@@ -187,9 +191,15 @@ export function PawButton({
   disabled?: boolean;
   style?: ViewStyle;
   small?: boolean;
+  /**
+   * Overrides the cue this button fires. Defaults to a light tap, or a heavier
+   * one for `danger`, so a delete feels different in the hand from a save.
+   */
+  feedback?: Cue;
 }) {
   const p = useTheme();
   const [pressed, setPressed] = useState(false);
+  const dip = usePressScale(pressed);
 
   const skin = {
     primary: { bg: pressed ? p.primaryPressed : p.primary, fg: p.onPrimary, border: pressed ? p.primaryPressed : p.primary },
@@ -199,13 +209,17 @@ export function PawButton({
   }[variant];
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       disabled={disabled}
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
-      onPress={onPress}
+      onPress={() => {
+        cue(feedback ?? (variant === 'danger' ? 'destroy' : 'tap'));
+        onPress();
+      }}
       style={[
+        dip,
         {
           backgroundColor: disabled ? p.surfaceSoft : skin.bg,
           borderColor: disabled ? p.hairline : skin.border,
@@ -223,7 +237,7 @@ export function PawButton({
     >
       {!!icon && <Ionicons name={icon} size={small ? 14 : 16} color={disabled ? p.ash : skin.fg} />}
       <Text style={type(small ? 'buttonSm' : 'buttonMd', disabled ? p.ash : skin.fg)}>{label}</Text>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -244,7 +258,11 @@ export function Chip({
   const p = useTheme();
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        // A locked chip is a refusal, and should not feel like a choice.
+        cue(locked ? 'blocked' : 'select');
+        onPress();
+      }}
       style={{
         paddingVertical: space.sm - 1,
         paddingHorizontal: space.lg - 2,
@@ -329,7 +347,20 @@ export function Sparkbars({ values, color, height = 56, labels }: { values: numb
   );
 }
 
-export function StatTile({ emoji, value, label, tint }: { emoji: string; value: string; label: string; tint?: string }) {
+export function StatTile({
+  emoji,
+  value,
+  label,
+  tint,
+  icon,
+}: {
+  emoji: string;
+  value: string;
+  label: string;
+  tint?: string;
+  /** Replaces the emoji — used for the tiles that carry a live animation. */
+  icon?: React.ReactNode;
+}) {
   const p = useTheme();
   return (
     <View
@@ -345,7 +376,7 @@ export function StatTile({ emoji, value, label, tint }: { emoji: string; value: 
         gap: 2,
       }}
     >
-      <Text style={{ fontSize: 18 }}>{emoji}</Text>
+      {icon ?? <Text style={{ fontSize: 18 }}>{emoji}</Text>}
       <Text style={[type('headingMd', p.ink), { fontVariant: ['tabular-nums'] }]}>{value}</Text>
       <Text style={[type('captionSm', p.mute), { textAlign: 'center' }]}>{label}</Text>
     </View>
@@ -370,6 +401,7 @@ export function EmptyState({
   const p = useTheme();
   return (
     <View style={{ alignItems: 'center', paddingVertical: space.xl, paddingHorizontal: space.sm }}>
+      <Anim name="paw-trail" size={132} style={{ height: 62 }} loop tint={p.stone} />
       <Text style={{ fontSize: 40 }}>{emoji}</Text>
       <Text style={[type('headingSmMixed', p.ink), { marginTop: space.md, textAlign: 'center' }]}>{title}</Text>
       <Text style={[type('bodySm', p.body), { marginTop: space.xs + 2, textAlign: 'center', maxWidth: 320 }]}>{body}</Text>
@@ -378,11 +410,24 @@ export function EmptyState({
   );
 }
 
+/**
+ * The splash. Held until fonts and state are resident, which is long enough
+ * that a walking paw trail reads better than a bare spinner — but the spinner
+ * stays underneath, because the trail is the first thing that cannot render if
+ * the animation player is missing.
+ */
 export function Loading() {
   const p = useTheme();
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: p.canvas, gap: space.md }}>
-      <Text style={{ fontSize: 40 }}>{'\u{1F43E}'}</Text>
+      <Anim
+        name="paw-trail"
+        size={220}
+        style={{ height: 104 }}
+        loop
+        tint={p.stone}
+        fallback={<Text style={{ fontSize: 40 }}>{'\u{1F43E}'}</Text>}
+      />
       <ActivityIndicator color={p.primary} />
       <Text style={type('bodySm', p.body)}>Waking up Pawday…</Text>
     </View>
@@ -552,6 +597,32 @@ function ToastCard({
         </View>
       </Pressable>
     </Animated.View>
+  );
+}
+
+/**
+ * Full-screen flourish for the handful of moments that deserve one: a perfect
+ * day, a level, a claimed reward, Pro unlocking.
+ *
+ * Non-interactive by construction — it sits over the app, never blocks a tap,
+ * and clears itself the moment the animation ends. Rare by design: a
+ * celebration that fires for everything celebrates nothing.
+ */
+export function CelebrationHost() {
+  const { celebration, endCelebration, palette: p } = useApp();
+  if (!celebration) return null;
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <Anim
+          key={celebration.id}
+          name={celebration.name}
+          size={celebration.name === 'confetti' ? 380 : 160}
+          tint={celebration.name === 'coin-flip' ? p.primary : undefined}
+          onFinish={endCelebration}
+        />
+      </View>
+    </View>
   );
 }
 

@@ -107,6 +107,16 @@ export type Settings = {
   tipsDismissed: string[];
   coachMarksSeen: string[];
   installedAt: string;
+  /** UI sound effects. Independent of `haptics` — a quiet room is not a still one. */
+  sound: boolean;
+  /** Vibration feedback on care actions, rewards and refusals. */
+  haptics: boolean;
+  /**
+   * Vector animations and motion flourishes. Doubles as the reduce-motion
+   * escape hatch, so turning it off leaves a complete, still interface rather
+   * than holes where the animations were.
+   */
+  motion: boolean;
 };
 
 export type ProPlan = 'monthly' | 'yearly' | 'lifetime';
@@ -430,6 +440,9 @@ export function defaultSettings(now = new Date()): Settings {
     tipsDismissed: [],
     coachMarksSeen: [],
     installedAt: now.toISOString(),
+    sound: true,
+    haptics: true,
+    motion: true,
   };
 }
 
